@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-02-23T14:23:14" hostname="MBP-von-Calvin" time="0.001">
+<testsuite name="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2025-02-23T14:40:10" hostname="MBP-von-Calvin" time="0.001">
   <properties/>
   <testcase name="testCreateUser_fromUserPostDTO_toUser_success()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
   <testcase name="testGetUser_fromUser_toUserGetDTO_success()" classname="ch.uzh.ifi.hase.soprafs24.rest.mapper.DTOMapperTest" time="0.0"/>
