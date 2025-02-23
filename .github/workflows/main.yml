@@ -42,7 +42,10 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
-
+          
+      - name: Delete old Gradle cache
+        run: rm -rf ~/.gradle
+        
       - name: Grant execute permissions to Gradle wrapper
         run: chmod +x server/gradlew
       
