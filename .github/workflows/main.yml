@@ -50,7 +50,8 @@ jobs:
         run: chmod +x server/gradlew
       
       - name: Build with Gradle
-        run: server/gradlew build
+        run: ./gradlew build
+        working-directory: server
 
       - name: Deploy to App Engine
         id: deploy
