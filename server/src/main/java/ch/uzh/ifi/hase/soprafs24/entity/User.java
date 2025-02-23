@@ -16,7 +16,7 @@ import java.io.Serializable;
  * the primary key
  */
 @Entity
-@Table(name = "USER")
+@Table(name = "app_user")
 public class User implements Serializable {
 
   private static final long serialVersionUID = 1L;
