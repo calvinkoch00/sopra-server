@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 /**
  * User Service
@@ -54,7 +55,7 @@ public class UserService {
 
   /**
    * This is a helper method that will check the uniqueness criteria of the
-   * username and the name
+   * username and the password
    * defined in the User entity. The method will do nothing if the input is unique
    * and throw an error otherwise.
    *
@@ -64,16 +65,15 @@ public class UserService {
    */
   private void checkIfUserExists(User userToBeCreated) {
     User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    User userByName = userRepository.findByName(userToBeCreated.getName());
-
+    Optional<User> userByIdOptional = userRepository.findById(userToBeCreated.getId());
+    User userById = userByIdOptional.orElse(null); // This avoids unnecessary exceptions
     String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null && userByName != null) {
+    if (userByUsername != null ) { //&& userById != null
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the name", "are"));
-    } else if (userByUsername != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
-    } else if (userByName != null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
-    }
+          String.format(baseErrorMessage, "username and the Id", "are"));
+    } 
+    else if (userById != null) {
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "ID", "is"));
+   }
   }
 }
