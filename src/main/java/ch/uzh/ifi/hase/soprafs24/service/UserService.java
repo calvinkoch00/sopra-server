@@ -3,10 +3,8 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,66 +12,87 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.Optional;
 
 /**
  * User Service
- * This class is the "worker" and responsible for all functionality related to
- * the user
- * (e.g., it creates, modifies, deletes, finds). The result will be passed back
- * to the caller.
+ * Handles all user-related business logic.
  */
 @Service
 @Transactional
 public class UserService {
-
-  private final Logger log = LoggerFactory.getLogger(UserService.class);
-
+  
   private final UserRepository userRepository;
 
-  @Autowired
-  public UserService(@Qualifier("userRepository") UserRepository userRepository) {
+  public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
   }
 
-  public List<User> getUsers() {
-    return this.userRepository.findAll();
+  /**
+   * Retrieves all users but only if token matches the given user ID.
+   */
+  public List<User> getUsers(Long userId, String token) {
+      validateUserSession(userId, token);
+      return userRepository.findAll();
   }
 
-  public User createUser(User newUser) {
-    newUser.setToken(UUID.randomUUID().toString());
-    newUser.setStatus(UserStatus.OFFLINE);
-    checkIfUserExists(newUser);
-    // saves the given entity but data is only persisted in the database once
-    // flush() is called
-    newUser = userRepository.save(newUser);
-    userRepository.flush();
 
-    log.debug("Created Information for User: {}", newUser);
-    return newUser;
+  public void createUser(UserPostDTO userPostDTO) {
+    User newUser = new User();
+    newUser.setUsername(userPostDTO.getUsername());
+    newUser.setPassword(userPostDTO.getPassword());
+    newUser.setToken(UUID.randomUUID().toString()); // Token is set but not returned
+    newUser.setStatus(UserStatus.OFFLINE); // Default to offline
+
+    userRepository.save(newUser);
   }
 
   /**
-   * This is a helper method that will check the uniqueness criteria of the
-   * username and the password
-   * defined in the User entity. The method will do nothing if the input is unique
-   * and throw an error otherwise.
-   *
-   * @param userToBeCreated
-   * @throws org.springframework.web.server.ResponseStatusException
-   * @see User
+  * Login a user (RETURNS TOKEN AND ID)
+  */
+  public User loginUser(String username, String password) {
+    User user = userRepository.findByUsername(username);
+
+    if (user == null || !user.getPassword().equals(password)) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
+    }
+
+    // Generate a new session token for the logged-in user
+    user.setToken(UUID.randomUUID().toString());
+    user.setStatus(UserStatus.ONLINE);
+    userRepository.save(user);
+
+    return user; // Return WITH token and ID
+  }
+
+  /**
+   * Retrieves user by ID but ensures token matches.
    */
-  private void checkIfUserExists(User userToBeCreated) {
-    User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-    Optional<User> userByIdOptional = userRepository.findById(userToBeCreated.getId());
-    User userById = userByIdOptional.orElse(null); // This avoids unnecessary exceptions
-    String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
-    if (userByUsername != null ) { //&& userById != null
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-          String.format(baseErrorMessage, "username and the Id", "are"));
-    } 
-    else if (userById != null) {
-    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "ID", "is"));
-   }
+  public User getUserById(Long userId, String token) {
+      validateUserSession(userId, token);
+      return userRepository.findById(userId)
+          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
+  }
+
+  /**
+   * Logs out user only if token matches.
+   */
+  public void logoutUser(Long userId, String token) {
+      User user = validateUserSession(userId, token);
+      user.setStatus(UserStatus.OFFLINE);
+      user.setToken(null);
+      userRepository.save(user);
+  }
+
+  /**
+   * Validates if a user's token matches the provided ID.
+   */
+  private User validateUserSession(Long userId, String token) {
+      User user = userRepository.findById(userId)
+          .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
+      
+      if (!user.getToken().equals(token)) {
+          throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid session token.");
+      }
+      return user;
   }
 }

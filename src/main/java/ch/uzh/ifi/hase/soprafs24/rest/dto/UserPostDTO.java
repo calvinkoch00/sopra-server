@@ -1,18 +1,16 @@
 package ch.uzh.ifi.hase.soprafs24.rest.dto;
 
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.None;
-
 public class UserPostDTO {
 
-  private String password;
-
   private String username;
+  private String password;
+  private String birthdate;
 
   public String getPassword() {
     return password;
   }
 
-  public void setName(String password) {
+  public void setPassword(String password) {
     this.password = password;
   }
 
@@ -22,5 +20,13 @@ public class UserPostDTO {
 
   public void setUsername(String username) {
     this.username = username;
+  }
+
+  public String getBirthdate() {
+    return birthdate;
+  }
+
+  public void setBirthdate(String birthdate) {
+    this.birthdate = birthdate;
   }
 }
