@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs24.service;
 import ch.uzh.ifi.hase.soprafs24.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs24.entity.User;
 import ch.uzh.ifi.hase.soprafs24.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs24.rest.dto.UserPostDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Test class for the UserResource REST resource.
- *
- * @see UserService
- */
 @WebAppConfiguration
 @SpringBootTest
 public class UserServiceIntegrationTest {
@@ -36,20 +32,16 @@ public class UserServiceIntegrationTest {
 
   @Test
   public void createUser_validInputs_success() {
-    // given
     assertNull(userRepository.findByUsername("testUsername"));
 
-    User testUser = new User();
-    testUser.setName("testName");
-    testUser.setUsername("testUsername");
+    UserPostDTO testUserDTO = new UserPostDTO();
+    testUserDTO.setUsername("testUsername");
+    testUserDTO.setPassword("securePassword");
 
-    // when
-    User createdUser = userService.createUser(testUser);
+    User createdUser = userService.createUser(testUserDTO);
 
-    // then
-    assertEquals(testUser.getId(), createdUser.getId());
-    assertEquals(testUser.getName(), createdUser.getName());
-    assertEquals(testUser.getUsername(), createdUser.getUsername());
+    assertNotNull(createdUser.getId());
+    assertEquals(testUserDTO.getUsername(), createdUser.getUsername());
     assertNotNull(createdUser.getToken());
     assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
   }
@@ -58,19 +50,15 @@ public class UserServiceIntegrationTest {
   public void createUser_duplicateUsername_throwsException() {
     assertNull(userRepository.findByUsername("testUsername"));
 
-    User testUser = new User();
-    testUser.setName("testName");
-    testUser.setUsername("testUsername");
-    User createdUser = userService.createUser(testUser);
+    UserPostDTO testUserDTO = new UserPostDTO();
+    testUserDTO.setUsername("testUsername");
+    testUserDTO.setPassword("securePassword");
+    userService.createUser(testUserDTO);
 
-    // attempt to create second user with same username
-    User testUser2 = new User();
+    UserPostDTO testUser2DTO = new UserPostDTO();
+    testUser2DTO.setUsername("testUsername");
+    testUser2DTO.setPassword("securePassword");
 
-    // change the name but forget about the username
-    testUser2.setName("testName2");
-    testUser2.setUsername("testUsername");
-
-    // check that an error is thrown
-    assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
+    assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2DTO));
   }
 }

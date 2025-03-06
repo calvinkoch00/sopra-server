@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -37,14 +38,13 @@ public class UserController {
 
   /**POST Register (No Token Required)** */
   @PostMapping("/register")
-  public ResponseEntity<Map<String, String>> createUser(@RequestBody UserPostDTO userPostDTO) {
-    userService.createUser(userPostDTO);
+  public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPostDTO) {
+    User newUser = userService.createUser(userPostDTO);
 
-    // Return an empty response body with a success message
-    Map<String, String> response = new HashMap<>();
-    response.put("message", "User successfully registered.");
+    // Convert entity to DTO to include `creationDate`
+    UserGetDTO response = DTOMapper.INSTANCE.convertEntityToUserGetDTO(newUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
-  }
+}
 
   /** 
    * Login (RETURNS TOKEN AND ID)
@@ -57,33 +57,54 @@ public class UserController {
       return ResponseEntity.ok(response); // Returns token and ID
   }
 
-  /**GET All Users (Requires Token & ID Verification)** */
+@PostMapping("/users")
+public ResponseEntity<UserGetDTO> createUserViaUsersEndpoint(@RequestBody UserPostDTO userPostDTO) {
+    User newUser = userService.createUser(userPostDTO);
+
+    UserGetDTO response = DTOMapper.INSTANCE.convertEntityToUserGetDTO(newUser);
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+}
+
   @GetMapping("/users")
-  public List<UserGetDTO> getUsers(
-      @RequestParam Long userId, 
-      @RequestHeader(value = "Authorization", required = false) String token) {
-      
-      logger.info("Received request to /users with userId: {} and token: {}", userId, token);
+public List<UserGetDTO> getUsers(
+    @RequestParam(required = false) Long userId, 
+    @RequestHeader(value = "Authorization", required = false) String token,
+    @RequestParam(required = false) String username,
+    @RequestParam(required = false) String password) {
+    
+    logger.info("Received request to /users with userId: {}, token: {}, username: {}, password: {}", userId, token, username, password);
 
-      if (token == null) {
-          logger.error("Authorization header is missing");
-          throw new RuntimeException("Authorization header is missing");
-      }
+    // If username and password are provided, create a new user
+    if (username != null && password != null) {
+        logger.info("Adding a new user: {}", username);
+        UserPostDTO newUser = new UserPostDTO();
+        newUser.setUsername(username);
+        newUser.setPassword(password);
+        userService.createUser(newUser);
+    }
 
-      List<User> users = userService.getUsers(userId, token);
-      return users.stream().map(DTOMapper.INSTANCE::convertEntityToUserGetDTO).toList();
-  }
+    // If userId and token are provided, return users
+    if (userId != null && token != null) {
+        List<User> users = userService.getUsers(userId, token);
+        return users.stream().map(DTOMapper.INSTANCE::convertEntityToUserGetDTO).toList();
+    }
+
+    // If neither condition is met, return an error
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid request: Provide either (username & password) to add a user or (userId & token) to fetch users.");
+}
 
 
   /**GET Specific User (Requires Token)** */
-  @GetMapping("/users/{id}")
-  public UserGetDTO getUserById(
-      @PathVariable Long id, 
-      @RequestHeader("Authorization") String token) {
-      
-      User user = userService.getUserById(id, token);
-      return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
-  }
+    /**GET Specific User (Requires Token) */
+    @GetMapping("/users/{id}")
+    public UserGetDTO getUserById(
+    @RequestParam Long userId,
+    @PathVariable("id") Long requestedUserId,
+    @RequestHeader("Authorization") String token) {
+
+    User user = userService.getUserById(userId, requestedUserId, token);
+    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+}
 
   /**PUT Logout (Requires Token & ID Verification)** */
   @PutMapping("/users/{userId}/logout")
@@ -96,5 +117,17 @@ public class UserController {
       Map<String, String> response = new HashMap<>();
       response.put("message", "User successfully logged out.");
       return ResponseEntity.ok(response);
+  }
+  /** PUT Update User (Requires Token & ID Verification) **/
+  @PutMapping("/users/{userId}")
+  public ResponseEntity<Void> updateUserProfile(
+      @PathVariable Long userId,
+      @RequestBody Map<String, Object> updateData,
+      @RequestHeader("Authorization") String token) {
+  
+      // Validate that the token belongs to the user being updated
+      userService.updateUserProfile(userId, updateData, token);
+      
+      return ResponseEntity.noContent().build();
   }
 }
