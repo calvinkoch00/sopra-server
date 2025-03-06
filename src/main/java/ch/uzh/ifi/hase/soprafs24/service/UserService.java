@@ -18,10 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Map;
 
-/**
- * User Service
- * Handles all user-related business logic.
- */
+
 @Service
 @Transactional
 public class UserService {
@@ -32,9 +29,6 @@ public class UserService {
     this.userRepository = userRepository;
   }
 
-  /**
-   * Retrieves all users but only if token matches the given user ID.
-   */
   public List<User> getUsers(Long userId, String token) {
     validateUserSession(userId, token);
     return userRepository.findAll();
@@ -57,9 +51,7 @@ public User createUser(UserPostDTO userPostDTO) {
   return userRepository.save(newUser);
 }
 
-  /**
-  * Login a user (RETURNS TOKEN AND ID)
-  */
+
   public User loginUser(String username, String password) {
     User user = userRepository.findByUsername(username);
 
@@ -67,7 +59,7 @@ public User createUser(UserPostDTO userPostDTO) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password.");
     }
 
-    // Generate and save a new token
+    
     user.setToken(UUID.randomUUID().toString());
     user.setStatus(UserStatus.ONLINE);
     userRepository.save(user);
@@ -75,22 +67,13 @@ public User createUser(UserPostDTO userPostDTO) {
     return user;
 }
 
-  /**
-   * Retrieves user by ID but ensures token matches.
-   */
-    /**
-   * Retrieves user by ID but ensures token matches.
-   * Returns full user data if requesting their own profile.
-   * Returns limited user data if viewing another user's profile.
-   */
   public User getUserById(Long userId, Long requestedUserId, String token) {
-    User requestingUser = validateUserSession(userId, token); // ✅ Ensure valid session
+    User requestingUser = validateUserSession(userId, token);
 
     User targetUser = userRepository.findById(requestedUserId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
 
     if (!userId.equals(requestedUserId)) {
-        // 🔒 Hide sensitive data if fetching someone else's profile
         User publicUser = new User();
         publicUser.setId(targetUser.getId());
         publicUser.setUsername(targetUser.getUsername());
@@ -99,12 +82,10 @@ public User createUser(UserPostDTO userPostDTO) {
         return publicUser;
     }
 
-    return targetUser; // ✅ If requesting own profile, return everything
+    return targetUser;
 }
 
-  /**
-   * Logs out user only if token matches.
-   */
+
   public void logoutUser(Long userId, String token) {
       User user = validateUserSession(userId, token);
       user.setStatus(UserStatus.OFFLINE);
@@ -112,16 +93,14 @@ public User createUser(UserPostDTO userPostDTO) {
       userRepository.save(user);
   }
 
-  /**
-   * Validates if a user's token matches the provided ID.
-   */
+  
   private static final Logger logger = LoggerFactory.getLogger(UserService.class);
   private User validateUserSession(Long userId, String token) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
 
     String storedToken = user.getToken();
-    String receivedToken = (token != null) ? token.replace("Bearer ", "").trim() : null; // ✅ Remove "Bearer "
+    String receivedToken = (token != null) ? token.replace("Bearer ", "").trim() : null;
 
     logger.info("🔍 Stored Token: \"{}\"", storedToken);
     logger.info("🔍 Received Token: \"{}\"", receivedToken);
@@ -133,9 +112,7 @@ public User createUser(UserPostDTO userPostDTO) {
 
     return user;
 }
-/**
- * Updates a user's profile, ensuring only allowed fields are modified.
- */
+
 public void updateUserProfile(Long userId, Map<String, Object> updateData, String token) {
   User userToUpdate = validateUserSession(userId, token);
 

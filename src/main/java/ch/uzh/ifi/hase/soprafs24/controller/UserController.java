@@ -17,10 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
-/**
- * User Controller
- * Handles user-related HTTP requests.
- */import org.slf4j.Logger;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestController
@@ -36,25 +33,22 @@ public class UserController {
 
   
 
-  /**POST Register (No Token Required)** */
   @PostMapping("/register")
   public ResponseEntity<UserGetDTO> createUser(@RequestBody UserPostDTO userPostDTO) {
     User newUser = userService.createUser(userPostDTO);
 
-    // Convert entity to DTO to include `creationDate`
+    
     UserGetDTO response = DTOMapper.INSTANCE.convertEntityToUserGetDTO(newUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
 }
 
-  /** 
-   * Login (RETURNS TOKEN AND ID)
-   */
+  
   @PostMapping("/login")
   public ResponseEntity<UserGetDTO> loginUser(@RequestBody UserPostDTO userPostDTO) {
       User authenticatedUser = userService.loginUser(userPostDTO.getUsername(), userPostDTO.getPassword());
 
       UserGetDTO response = DTOMapper.INSTANCE.convertEntityToUserGetDTO(authenticatedUser);
-      return ResponseEntity.ok(response); // Returns token and ID
+      return ResponseEntity.ok(response);
   }
 
 @PostMapping("/users")
@@ -74,7 +68,6 @@ public List<UserGetDTO> getUsers(
     
     logger.info("Received request to /users with userId: {}, token: {}, username: {}, password: {}", userId, token, username, password);
 
-    // If username and password are provided, create a new user
     if (username != null && password != null) {
         logger.info("Adding a new user: {}", username);
         UserPostDTO newUser = new UserPostDTO();
@@ -83,19 +76,15 @@ public List<UserGetDTO> getUsers(
         userService.createUser(newUser);
     }
 
-    // If userId and token are provided, return users
     if (userId != null && token != null) {
         List<User> users = userService.getUsers(userId, token);
         return users.stream().map(DTOMapper.INSTANCE::convertEntityToUserGetDTO).toList();
     }
 
-    // If neither condition is met, return an error
     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid request: Provide either (username & password) to add a user or (userId & token) to fetch users.");
 }
 
 
-  /**GET Specific User (Requires Token)** */
-    /**GET Specific User (Requires Token) */
     @GetMapping("/users/{id}")
     public UserGetDTO getUserById(
     @RequestParam Long userId,
@@ -106,7 +95,6 @@ public List<UserGetDTO> getUsers(
     return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 }
 
-  /**PUT Logout (Requires Token & ID Verification)** */
   @PutMapping("/users/{userId}/logout")
   public ResponseEntity<Map<String, String>> logoutUser(
       @PathVariable Long userId, 
@@ -118,14 +106,13 @@ public List<UserGetDTO> getUsers(
       response.put("message", "User successfully logged out.");
       return ResponseEntity.ok(response);
   }
-  /** PUT Update User (Requires Token & ID Verification) **/
+  
   @PutMapping("/users/{userId}")
   public ResponseEntity<Void> updateUserProfile(
       @PathVariable Long userId,
       @RequestBody Map<String, Object> updateData,
       @RequestHeader("Authorization") String token) {
   
-      // Validate that the token belongs to the user being updated
       userService.updateUserProfile(userId, updateData, token);
       
       return ResponseEntity.noContent().build();

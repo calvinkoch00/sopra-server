@@ -34,10 +34,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * UserControllerTest
- * Tests REST API endpoints for UserController.
- */
 @WebMvcTest(UserController.class)
 public class UserControllerTest {
 
@@ -151,9 +147,7 @@ public void updateUserProfile_userNotFound_returns404() throws Exception {
         .andExpect(status().isNotFound());
 }
 
-  /**
-   * Helper method to convert objects to JSON.
-   */
+  
   private String asJsonString(final Object object) {
       try {
           return new ObjectMapper().writeValueAsString(object);
